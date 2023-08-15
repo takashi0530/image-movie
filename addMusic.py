@@ -55,7 +55,6 @@ def add_music_to_video(video_path: str, audio_path: str, output_path: str) -> No
     video = VideoFileClip(video_path)
     audio = AudioFileClip(audio_path)
     video_duration = video.duration
-    # audio_repeated = audio.loop(duration=video_duration)  # Changed from `audio.fx(vfx.loop,...)` as it's more direct
     audio_repeated = audio.fx(vfx.loop, duration=video_duration)
     video_with_audio = video.set_audio(audio_repeated)
     video_with_audio.write_videofile(output_path, codec='libx264')
