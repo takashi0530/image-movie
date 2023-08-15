@@ -41,6 +41,7 @@ node_modules
 *.avi
 
 # music files
+/music/*
 *.mp3
 
 # image files
@@ -52,3 +53,5 @@ myenv/
 
 # vscode
 *.code-workspace
+*.vscode
+/.vscode/*
