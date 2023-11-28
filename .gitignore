@@ -45,6 +45,8 @@ node_modules
 *.mp3
 *.wav
 *.aac
+!am.aac
+!am.mp3
 
 # image files
 *.jpeg
