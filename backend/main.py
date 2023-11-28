@@ -6,9 +6,10 @@ import shutil
 from pathlib import Path
 from typing import List # typingモジュールからListをインポート
 from addMusic import main as add_music_main
+import uuid  # 一時ディレクトリ名のためにUUIDを生成する
+
 # test
 from test import main as test_main
-
 # デバッグ用
 import pdb
 
@@ -30,26 +31,26 @@ def read_root():
 
 @app.post("/uploadfile/")
 async def upload_file(images: List[UploadFile] = Form(...)):
-    print('uploadfile 内')
+    # 一時ディレクトリの作成
+    temp_dir = Path("target_images") / str(uuid.uuid4())
+    temp_dir.mkdir(parents=True, exist_ok=True)
 
-    # 保存先ディレクトリを指定
-    save_directory = Path("images_dir")
-
-    # ディレクトリが存在しない場合は作成
-    save_directory.mkdir(parents=True, exist_ok=True)
-
+    # 一時ディレクトリにファイルを保存
     for image in images:
-        print(image.filename)
         try:
-            # 保存先の完全なパスを作成
-            file_path = save_directory / f"temp_{image.filename}"
+            file_path = temp_dir / image.filename
             with file_path.open("wb") as buffer:
                 shutil.copyfileobj(image.file, buffer)
         except Exception as e:
             raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="File not uploaded")
 
-    add_music_main()
-    return {"filename": [image.filename for image in images]}
+    # 画像->動画 変換処理
+    add_music_main(temp_dir)
+
+    # 一時ディレクトリの削除
+    shutil.rmtree(temp_dir)
+
+    return {"message": "Files processed successfully"}
 
 # test用
 @app.post("/test/")

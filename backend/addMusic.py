@@ -98,16 +98,20 @@ def remove_file(filepath: str) -> None:
     else:
         print(f"File not found: {filepath}")
 
-def main() -> None:
-    data_path_jpg = os.path.join(IMAGE_DIR, '*.[jJ][pP][gG]')
-    data_path_jpeg = os.path.join(IMAGE_DIR, '*.[jJ][pP][eE][gG]')
-    data_path_png = os.path.join(IMAGE_DIR, '*.[pP][nN][gG]')
-    data_path_webp = os.path.join(IMAGE_DIR, '*.[wW][eE][bB][pP]')
-    files_jpg = sorted(glob.glob(data_path_jpg))
-    files_jpeg = sorted(glob.glob(data_path_jpeg))
-    files_png = sorted(glob.glob(data_path_png))
-    files_webp = sorted(glob.glob(data_path_webp))
-    files = files_jpg + files_jpeg + files_png + files_webp  # jpg, jpeg, png, と webp のリストを結合
+def find_image_files(temp_dir: str) -> List[str]:
+    data_path_jpg: str = os.path.join(temp_dir, '*.[jJ][pP][gG]')
+    data_path_jpeg: str = os.path.join(temp_dir, '*.[jJ][pP][eE][gG]')
+    data_path_png: str = os.path.join(temp_dir, '*.[pP][nN][gG]')
+    data_path_webp: str = os.path.join(temp_dir, '*.[wW][eE][bB][pP]')
+    files_jpg: List[str] = sorted(glob.glob(data_path_jpg))
+    files_jpeg: List[str] = sorted(glob.glob(data_path_jpeg))
+    files_png: List[str] = sorted(glob.glob(data_path_png))
+    files_webp: List[str] = sorted(glob.glob(data_path_webp))
+    files: List[str] = files_jpg + files_jpeg + files_png + files_webp  # jpg, jpeg, png, と webp のリストを結合
+    return files
+
+def main(temp_dir: str) -> None:
+    files = find_image_files(temp_dir)
 
     # H.264コーデックを使用してビデオライターを作成
     fourcc = cv2.VideoWriter_fourcc(*'X264')
