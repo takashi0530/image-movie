@@ -1,15 +1,19 @@
+# 標準ライブラリのインポート
+import shutil
+import uuid  # 一時ディレクトリ名のためにUUIDを生成する
+from pathlib import Path
+from typing import List
+
+# 関連外部ライブラリ（サードパーティ）のインポート
 from fastapi import FastAPI, UploadFile, Form, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.status import HTTP_400_BAD_REQUEST
-import shutil
-from pathlib import Path
-from typing import List # typingモジュールからListをインポート
-from addMusic import main as add_music_main
-import uuid  # 一時ディレクトリ名のためにUUIDを生成する
 
-# test
+# ローカルアプリケーション/ライブラリ固有のインポート
+from make_movie import main as add_music_main
 from test import main as test_main
+
 # デバッグ用
 import pdb
 
