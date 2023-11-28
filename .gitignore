@@ -43,15 +43,19 @@ node_modules
 # music files
 /music/*
 *.mp3
+*.wav
+*.aac
 
 # image files
 *.jpeg
 *.jpg
 *.gif
 *.png
+*.webp
 myenv/
 
 # vscode
 *.code-workspace
 *.vscode
 /.vscode/*
+test*.py
