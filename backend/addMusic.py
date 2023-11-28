@@ -7,10 +7,13 @@ from moviepy.editor import VideoFileClip, AudioFileClip, vfx
 from typing import List, Tuple, Union
 
 # Constants
-DESIRED_WIDTH = 749
-DESIRED_HEIGHT = 1000
+# DESIRED_WIDTH = 5760  # 4k 3:2
+# DESIRED_HEIGHT = 3840 # 4k 3:2
+DESIRED_WIDTH = 1920  # フルHD 1920x1080
+DESIRED_HEIGHT = 1080 # フルHD 1920x1080
+
 IMAGE_DIR = "target_images"
-AUDIO_PATH = "music/am.mp3"
+AUDIO_PATH = "music/am.aac"
 OUTPUT_VIDEO_NAME = "output_movie/movie.mp4"
 OUTPUT_VIDEO_WITH_MUSIC_NAME = "output_movie/music_movie.mp4"
 
@@ -41,15 +44,44 @@ def resize_without_crop(img: np.ndarray, desired_width: int, desired_height: int
         new_height = desired_height
         new_width = int(desired_height * aspect_ratio)
 
-    return cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+    # Ensure the new dimensions are not larger than the desired dimensions
+    new_width = min(new_width, desired_width)
+    new_height = min(new_height, desired_height)
+
+    resized_img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+
+    # Check if resizing is necessary
+    if new_width == desired_width and new_height == desired_height:
+        return resized_img
+    else:
+        # Create a black canvas to fit the desired dimensions
+        canvas = np.zeros((desired_height, desired_width, 3), dtype=np.uint8)
+        # Calculate the centering position
+        y_offset = (desired_height - new_height) // 2
+        x_offset = (desired_width - new_width) // 2
+        # Place the resized image in the center of the canvas
+        canvas[y_offset:y_offset+new_height, x_offset:x_offset+new_width] = resized_img
+        return canvas
 
 def resize_and_center(img: np.ndarray, desired_width: int, desired_height: int) -> np.ndarray:
     resized_img = resize_without_crop(img, desired_width, desired_height)
+    height, width = resized_img.shape[:2]
+
+    # Create a black canvas with the desired dimensions
     background = np.zeros((desired_height, desired_width, 3), dtype=np.uint8)
-    y_offset = (desired_height - resized_img.shape[0]) // 2
-    x_offset = (desired_width - resized_img.shape[1]) // 2
-    background[y_offset:y_offset+resized_img.shape[0], x_offset:x_offset+resized_img.shape[1]] = resized_img
+
+    # Calculate offsets to center the image
+    y_offset = (desired_height - height) // 2
+    x_offset = (desired_width - width) // 2
+
+    # Place the resized image onto the canvas
+    background[y_offset:y_offset+height, x_offset:x_offset+width] = resized_img
     return background
+
+def calculate_offsets(background_shape: Tuple[int, int, int], resized_shape: Tuple[int, int, int]) -> Tuple[int, int]:
+    y_offset = (background_shape[0] - resized_shape[0]) # 2
+    x_offset = (background_shape[1] - resized_shape[1]) # 2
+    return y_offset, x_offset
 
 def add_music_to_video(video_path: str, audio_path: str, output_path: str) -> None:
     video = VideoFileClip(video_path)
@@ -67,16 +99,31 @@ def remove_file(filepath: str) -> None:
         print(f"File not found: {filepath}")
 
 def main() -> None:
-    data_path = os.path.join(IMAGE_DIR, '*.jpeg')
-    files = sorted(glob.glob(data_path))
+    data_path_jpg = os.path.join(IMAGE_DIR, '*.[jJ][pP][gG]')
+    data_path_jpeg = os.path.join(IMAGE_DIR, '*.[jJ][pP][eE][gG]')
+    data_path_png = os.path.join(IMAGE_DIR, '*.[pP][nN][gG]')
+    data_path_webp = os.path.join(IMAGE_DIR, '*.[wW][eE][bB][pP]')
+    files_jpg = sorted(glob.glob(data_path_jpg))
+    files_jpeg = sorted(glob.glob(data_path_jpeg))
+    files_png = sorted(glob.glob(data_path_png))
+    files_webp = sorted(glob.glob(data_path_webp))
+    files = files_jpg + files_jpeg + files_png + files_webp  # jpg, jpeg, png, と webp のリストを結合
 
-    video = cv2.VideoWriter(OUTPUT_VIDEO_NAME, cv2.VideoWriter_fourcc(*'mp4v'), 1, (DESIRED_WIDTH, DESIRED_HEIGHT))
+    # H.264コーデックを使用してビデオライターを作成
+    fourcc = cv2.VideoWriter_fourcc(*'X264')
+    video = cv2.VideoWriter(OUTPUT_VIDEO_NAME, fourcc, 0.4, (DESIRED_WIDTH, DESIRED_HEIGHT))
+
 
     for file in files:
-        img = cv2.imread(file)
+        img = cv2.imread(file, cv2.IMREAD_UNCHANGED)
         if img is None:
             print(f"Image not loaded: {file}")
             continue
+
+        # PNGやWEBPファイルの場合、アルファチャネルを取り扱う必要があるかもしれない
+        if img.shape[2] == 4:  # アルファチャネルが存在する場合
+            # アルファチャネルをRGBに変換する
+            img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
 
         try:
             img = resize_and_center(img, DESIRED_WIDTH, DESIRED_HEIGHT)
