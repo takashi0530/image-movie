@@ -1,6 +1,7 @@
 # 標準ライブラリのインポート
 import shutil
 import uuid  # 一時ディレクトリ名のためにUUIDを生成する
+from datetime import datetime
 from pathlib import Path
 from typing import List
 
@@ -36,8 +37,13 @@ def read_root():
 @app.post("/uploadfile/")
 async def upload_file(images: List[UploadFile] = Form(...)):
     # 一時ディレクトリの作成
-    temp_dir = Path("target_images") / str(uuid.uuid4())
-    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    # 現在の日時をYYYYMMDD_HHMMSSの形式で取得
+    current_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # UUIDと組み合わせたディレクトリ名を生成
+    temp_dir = Path("target_images") / f"{current_datetime}_{str(uuid.uuid4())}"
+    temp_dir.mkdir(parents=True, exist_ok=True, mode=0o775)
 
     # 一時ディレクトリにファイルを保存
     for image in images:
@@ -50,9 +56,6 @@ async def upload_file(images: List[UploadFile] = Form(...)):
 
     # 画像->動画 変換処理
     add_music_main(temp_dir)
-
-    # 一時ディレクトリの削除
-    shutil.rmtree(temp_dir)
 
     return {"message": "Files processed successfully"}
 

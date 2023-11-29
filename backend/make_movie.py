@@ -14,11 +14,9 @@ from moviepy.editor import AudioFileClip, VideoFileClip, vfx
 # DESIRED_HEIGHT = 3840 # 4k 3:2
 DESIRED_WIDTH = 1920  # フルHD 1920x1080
 DESIRED_HEIGHT = 1080 # フルHD 1920x1080
-
-IMAGE_DIR = "target_images"
 AUDIO_PATH = "music/am.aac"
-OUTPUT_VIDEO_NAME = "output_movie/movie.mp4"
-OUTPUT_VIDEO_WITH_MUSIC_NAME = "output_movie/music_movie.mp4"
+OUTPUT_VIDEO_FILE_NAME = "only_movie.mp4"
+OUTPUT_VIDEO_WITH_MUSIC_FILE_NAME = "music_movie.mp4"
 
 def rename_images(directory_path: str) -> str:
     output_dir = os.path.join(directory_path, "result")
@@ -94,12 +92,12 @@ def add_music_to_video(video_path: str, audio_path: str, output_path: str) -> No
     video_with_audio = video.set_audio(audio_repeated)
     video_with_audio.write_videofile(output_path, codec='libx264')
 
-def remove_file(filepath: str) -> None:
-    if os.path.exists(filepath):
-        os.remove(filepath)
-        print(f"Removed file: {filepath}")
+def remove_directory(dir_path: str) -> None:
+    if os.path.exists(dir_path) and os.path.isdir(dir_path):
+        shutil.rmtree(dir_path)
+        print(f"ディレクトリを削除しました: {dir_path}")
     else:
-        print(f"File not found: {filepath}")
+        print(f"削除対象のディレクトリがみつかりません: {dir_path}")
 
 def find_image_files(temp_dir: str) -> List[str]:
     data_path_jpg: str = os.path.join(temp_dir, '*.[jJ][pP][gG]')
@@ -115,12 +113,15 @@ def find_image_files(temp_dir: str) -> List[str]:
 
 def main(temp_dir: str) -> None:
     files = find_image_files(temp_dir)
+    # 音楽なし動画の保存先path
+    output_unique_dir =  os.path.join(temp_dir, OUTPUT_VIDEO_FILE_NAME)
 
     # H.264コーデックを使用してビデオライターを作成
     fourcc = cv2.VideoWriter_fourcc(*'X264')
-    video = cv2.VideoWriter(OUTPUT_VIDEO_NAME, fourcc, 0.4, (DESIRED_WIDTH, DESIRED_HEIGHT))
+    # 音楽なし動画の作成
+    video = cv2.VideoWriter(output_unique_dir, fourcc, 0.4, (DESIRED_WIDTH, DESIRED_HEIGHT))
 
-
+    # 音楽なし動画に画像を追加
     for file in files:
         img = cv2.imread(file, cv2.IMREAD_UNCHANGED)
         if img is None:
@@ -138,10 +139,17 @@ def main(temp_dir: str) -> None:
         except Exception as e:
             print(f"Error on file {file}: {e}")
             break
-
+    # 動画ファイルの書き込み完了処理
     video.release()
-    add_music_to_video(OUTPUT_VIDEO_NAME, AUDIO_PATH, OUTPUT_VIDEO_WITH_MUSIC_NAME)
-    remove_file(OUTPUT_VIDEO_NAME)
+
+    # 音楽付き動画の保存先path
+    output_video_with_music = os.path.join(temp_dir, OUTPUT_VIDEO_WITH_MUSIC_FILE_NAME)
+
+    # 音楽付き動画の作成
+    add_music_to_video(output_unique_dir, AUDIO_PATH, output_video_with_music)
+    # 音楽付き動画の削除
+    # remove_directory(temp_dir)
+
 
 if __name__ == "__main__":
     main()
