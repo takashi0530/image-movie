@@ -132,13 +132,15 @@ def main(temp_dir: str) -> None:
         if img.shape[2] == 4:  # アルファチャネルが存在する場合
             # アルファチャネルをRGBに変換する
             img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
-
         try:
             img = resize_and_center(img, DESIRED_WIDTH, DESIRED_HEIGHT)
             video.write(img)
         except Exception as e:
             print(f"Error on file {file}: {e}")
             break
+        # 画像の解放
+        del img
+
     # 動画ファイルの書き込み完了処理
     video.release()
 
