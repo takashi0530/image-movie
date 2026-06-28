@@ -8,7 +8,6 @@ import subprocess
 import cv2
 import imageio_ffmpeg
 import numpy as np
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
