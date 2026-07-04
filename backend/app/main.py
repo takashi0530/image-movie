@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -23,6 +24,8 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
+    # ジョブ処理時間などのアプリログを INFO で出す（uvicorn のログと共存）
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(message)s")
     settings = get_settings()
     app = FastAPI(title="image-movie API", version="1.0.0", lifespan=lifespan)
     app.add_middleware(

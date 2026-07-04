@@ -50,7 +50,7 @@ def test_normalize_images_pads_to_target(tmp_path):
     assert count == 1
     import cv2
 
-    frame = cv2.imread(str(frames_dir / "0001.png"))
+    frame = cv2.imread(str(frames_dir / "0001.jpg"))
     assert frame.shape == (1080, 1920, 3)
 
 

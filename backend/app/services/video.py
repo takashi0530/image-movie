@@ -23,6 +23,7 @@ def build_video(
     *,
     input_framerate: float,
     output_fps: int,
+    preset: str = "veryfast",
 ) -> None:
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
     has_audio = audio_path is not None
@@ -34,7 +35,7 @@ def build_video(
         ffmpeg,
         "-y",
         "-framerate", str(input_framerate),
-        "-i", str(frames_dir / "%04d.png"),
+        "-i", str(frames_dir / "%04d.jpg"),
     ]
     if has_audio:
         # 音源を動画の長さに合わせて無限ループ
@@ -43,6 +44,7 @@ def build_video(
     cmd += [
         "-r", str(output_fps),
         "-c:v", "libx264",
+        "-preset", preset,  # 静止画スライドショーは veryfast で十分（medium比 2〜3倍高速）
         "-pix_fmt", "yuv420p",  # 幅広いプレイヤーとの互換性
     ]
     if has_audio:

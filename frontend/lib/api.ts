@@ -45,15 +45,27 @@ async function request<T>(
 const absolutize = (path: string | null) =>
   path ? `${API_BASE}${path}` : null;
 
-export async function getTracks(): Promise<Track[]> {
-  const body = await request<{ tracks: Track[] }>(
+// トラック一覧は実質静的なのでモジュールレベルでキャッシュする
+// （マウント毎・StrictMode の二重実行での再取得を避ける）。
+// 失敗時はキャッシュを破棄して次回リトライできるようにする。
+let tracksPromise: Promise<Track[]> | null = null;
+
+export function getTracks(): Promise<Track[]> {
+  tracksPromise ??= request<{ tracks: Track[] }>(
     "/tracks",
     "BGM一覧の取得に失敗しました",
-  );
-  return body.tracks.map((t) => ({
-    ...t,
-    preview_url: absolutize(t.preview_url)!,
-  }));
+  )
+    .then((body) =>
+      body.tracks.map((t) => ({
+        ...t,
+        preview_url: absolutize(t.preview_url)!,
+      })),
+    )
+    .catch((e) => {
+      tracksPromise = null;
+      throw e;
+    });
+  return tracksPromise;
 }
 
 export async function createVideo(
