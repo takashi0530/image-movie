@@ -46,7 +46,7 @@ def test_create_video_with_selected_track(png_bytes, wait_done):
         ("images", ("a.png", png_bytes((10, 10, 200)), "image/png")),
         ("images", ("b.png", png_bytes((10, 200, 10)), "image/png")),
     ]
-    res = client.post("/videos", files=files, data={"track_id": "happy"})
+    res = client.post("/videos", files=files, data={"track_id": "bossa"})
     assert res.status_code == 202
     status = wait_done(client, res.json()["job_id"])
     assert status["state"] == "done", status.get("error")
@@ -79,10 +79,10 @@ def test_create_video_fails_fast_when_audio_file_missing(png_bytes, tmp_path, mo
     monkeypatch.setattr(settings, "music_dir", tmp_path)  # 空ディレクトリを指す
     try:
         files = [("images", ("a.png", png_bytes((1, 1, 1)), "image/png"))]
-        res = client.post("/videos", files=files, data={"track_id": "happy"})
+        res = client.post("/videos", files=files, data={"track_id": "bossa"})
         assert res.status_code == 500
         assert "音源" in res.json()["detail"]
         # プレビューも 500 ではなく 404
-        assert client.get("/tracks/happy/preview").status_code == 404
+        assert client.get("/tracks/bossa/preview").status_code == 404
     finally:
         monkeypatch.undo()

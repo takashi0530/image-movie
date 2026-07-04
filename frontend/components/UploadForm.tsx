@@ -80,9 +80,7 @@ export function UploadForm({ disabled, onSubmit }: Props) {
             <span>おまかせ（自動選曲）</span>
           </label>
           {tracks.map((t) => (
-            // クレジット/ライセンスはツールチップで表示。CC-BY 等の
-            // 常時表示が必要な曲を入れる場合は可視テキストに変更すること
-            <label key={t.id} className="track" title={`${t.credit} / ${t.license}`}>
+            <label key={t.id} className="track">
               <input
                 type="radio"
                 name="track"
@@ -91,7 +89,13 @@ export function UploadForm({ disabled, onSubmit }: Props) {
                 disabled={disabled}
                 onChange={() => setTrackId(t.id)}
               />
-              <span>{t.title}</span>
+              <span className="track-info">
+                {t.title}
+                {/* CC BY 楽曲のためクレジットは常時可視で表示する */}
+                <small className="track-credit">
+                  {t.credit}（{t.license}）
+                </small>
+              </span>
               <audio controls preload="none" src={t.preview_url} />
             </label>
           ))}

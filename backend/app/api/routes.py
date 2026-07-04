@@ -6,7 +6,9 @@
 """
 from __future__ import annotations
 
+import logging
 import shutil
+import time
 import uuid
 from pathlib import Path
 from typing import List
@@ -35,6 +37,7 @@ from ..services import images as image_service
 from ..services import video as video_service
 
 router = APIRouter()
+logger = logging.getLogger("image_movie")
 
 VALID_ROTATIONS = (0, 90, 180, 270)
 
@@ -46,15 +49,17 @@ def _process(job_id: str, src_paths: List[Path], rotation: int, audio_path: Path
     if job is None:
         return
     job.state = JobState.processing
+    started = time.perf_counter()
     try:
         frames_dir = job.work_dir / "frames"
-        image_service.normalize_images(
+        count = image_service.normalize_images(
             sorted(src_paths),
             frames_dir,
             width=settings.width,
             height=settings.height,
             rotation=rotation,
         )
+        normalized = time.perf_counter()
         output_path = job.work_dir / "movie.mp4"
         video_service.build_video(
             frames_dir,
@@ -62,12 +67,23 @@ def _process(job_id: str, src_paths: List[Path], rotation: int, audio_path: Path
             output_path,
             input_framerate=settings.input_framerate,
             output_fps=settings.output_fps,
+            preset=settings.encode_preset,
         )
+        encoded = time.perf_counter()
         job.output_path = output_path
         job.state = JobState.done
+        logger.info(
+            "job %s done: images=%d normalize=%.2fs encode=%.2fs total=%.2fs",
+            job_id,
+            count,
+            normalized - started,
+            encoded - normalized,
+            encoded - started,
+        )
     except Exception as exc:  # noqa: BLE001 - 失敗はジョブ状態へ集約
         job.state = JobState.error
         job.error = str(exc)
+        logger.exception("job %s failed after %.2fs", job_id, time.perf_counter() - started)
 
 
 @router.get("/tracks", response_model=TracksResponse)

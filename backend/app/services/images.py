@@ -74,8 +74,10 @@ def normalize_images(
     height: int,
     rotation: int = 0,
 ) -> int:
-    """各画像を正規化し、連番 PNG（0001.png ...）として frames_dir に書き出す。
+    """各画像を正規化し、連番 JPEG（0001.jpg ...）として frames_dir に書き出す。
 
+    中間フレームは JPEG(q95) を使う。PNG は 1080p フレームの圧縮が重く、
+    写真用途では q95 JPEG との画質差は実質ないため、書込/読込とも大幅に速い。
     書き出した枚数を返す。有効な画像が 0 枚なら ValidationError。
     """
     frames_dir.mkdir(parents=True, exist_ok=True)
@@ -88,7 +90,11 @@ def normalize_images(
         img = _rotate(img, rotation)
         frame = _fit_with_padding(img, width, height)
         count += 1
-        cv2.imwrite(str(frames_dir / f"{count:04d}.png"), frame)
+        cv2.imwrite(
+            str(frames_dir / f"{count:04d}.jpg"),
+            frame,
+            [cv2.IMWRITE_JPEG_QUALITY, 95],
+        )
 
     if count == 0:
         raise ValidationError("有効な画像がありませんでした")

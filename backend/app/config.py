@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     height: int = 1080
     seconds_per_image: float = 2.5  # 1枚あたりの表示秒数
     output_fps: int = 30            # 出力動画のフレームレート（再生互換性のため通常値）
+    encode_preset: str = "veryfast"  # libx264 preset（速度と圧縮率のトレードオフ）
     music_dir: Path = BASE_DIR / "assets" / "music"  # 選択可能な BGM 音源を置くディレクトリ
 
     # ストレージ

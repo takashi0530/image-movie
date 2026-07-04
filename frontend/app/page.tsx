@@ -64,7 +64,8 @@ export default function Home() {
         if (active) setError(e instanceof Error ? e.message : "不明なエラー");
       }
     };
-    timer.current = setTimeout(poll, POLL_INTERVAL_MS);
+    // 生成は数秒で終わることが多いため、初回は待たずに即確認する
+    poll();
 
     return () => {
       active = false;
