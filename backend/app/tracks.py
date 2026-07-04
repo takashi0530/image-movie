@@ -1,7 +1,8 @@
 """BGM トラックのレジストリ。
 
-同梱音源は scripts/generate_sample_tracks.py で生成したオリジナル曲（CC0 相当・再配布可）。
-差し替える場合は assets/music/ にファイルを置き、下の TRACKS を更新する。
+同梱音源は Kevin MacLeod (incompetech.com) の CC BY 4.0 楽曲
+（再配布・改変可、要クレジット表記）。取得と整音は scripts/fetch_free_tracks.py。
+CC BY のクレジットは UI に可視表示する（assets/music/CREDITS.md 参照）。
 """
 from __future__ import annotations
 
@@ -19,12 +20,17 @@ class Track:
     license: str
 
 
+_KM = 'Music: Kevin MacLeod (incompetech.com)'
+_CC = "CC BY 4.0"
+
 TRACKS: List[Track] = [
-    Track("upbeat", "アップテンポ", "upbeat.aac", "Procedurally generated original", "CC0"),
-    Track("happy", "あかるい", "happy.aac", "Procedurally generated original", "CC0"),
-    Track("calm", "おだやか", "calm.aac", "Procedurally generated original", "CC0"),
-    Track("emo", "せつない", "emo.aac", "Procedurally generated original", "CC0"),
-    Track("epic", "壮大", "epic.aac", "Procedurally generated original", "CC0"),
+    Track("upbeat", "アップテンポ", "upbeat.aac", f'"Monkeys Spinning Monkeys" {_KM}', _CC),
+    Track("pop", "ポップ", "pop.aac", f'"Carefree" {_KM}', _CC),
+    Track("cafe", "カフェ", "cafe.aac", f'"Lobby Time" {_KM}', _CC),
+    Track("bossa", "ボサノバ", "bossa.aac", f'"Bossa Antigua" {_KM}', _CC),
+    Track("dance", "ダンス", "dance.aac", f'"Disco con Tutti" {_KM}', _CC),
+    Track("house", "ハウス", "house.aac", f'"Voxel Revolution" {_KM}', _CC),
+    Track("electro", "エレクトロ", "electro.aac", f'"Electrodoodle" {_KM}', _CC),
 ]
 
 AUTO = "auto"

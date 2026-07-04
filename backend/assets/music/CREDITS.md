@@ -1,21 +1,33 @@
 # BGM クレジット / ライセンス
 
-同梱の BGM はすべて `backend/scripts/generate_sample_tracks.py`（v2 シンセエンジン）で
-手続き的に生成した**オリジナル曲**です。第三者の著作物を含まないため、
-**生成動画への埋め込み・再配布が可能**（CC0 相当として扱います）。
+同梱の BGM は **Kevin MacLeod (incompetech.com)** の楽曲です。
+ライセンスは **Creative Commons: By Attribution 4.0**（CC BY 4.0）
+<http://creativecommons.org/licenses/by/4.0/> — **再配布・改変可、クレジット表記必須**。
 
-| ファイル | タイトル | テイスト | ライセンス |
-|---|---|---|---|
-| upbeat.aac | アップテンポ | 128BPM・4つ打ち・元気が出る | CC0（オリジナル） |
-| happy.aac | あかるい | 112BPM・バウンス・ポップ | CC0（オリジナル） |
-| calm.aac | おだやか | 76BPM・ドラムレス・アンビエント | CC0（オリジナル） |
-| emo.aac | せつない | 90BPM・ハーフタイム・マイナー | CC0（オリジナル） |
-| epic.aac | 壮大 | 100BPM・シネマティック | CC0（オリジナル） |
+取得・整音（95秒トリム / -14LUFS 正規化 / フェードアウト / AAC 192k）は
+`backend/scripts/fetch_free_tracks.py` で再現できます。
 
-各曲とも約60秒。動画がそれより長い場合は自動でループ再生されます。
+| ファイル | UI表示 | 原曲 |
+|---|---|---|
+| upbeat.aac | アップテンポ | "Monkeys Spinning Monkeys" |
+| pop.aac | ポップ | "Carefree" |
+| cafe.aac | カフェ | "Lobby Time" |
+| bossa.aac | ボサノバ | "Bossa Antigua" |
+| dance.aac | ダンス | "Disco con Tutti" |
+| house.aac | ハウス | "Voxel Revolution" |
+| electro.aac | エレクトロ | "Electrodoodle" |
+
+## 必要なクレジット表記（CC BY 4.0）
+
+アプリの UI には各曲のクレジットを可視表示しています。**生成した動画を公開する場合は、
+動画内または説明欄に以下の形式のクレジットを記載してください**:
+
+```
+"<曲名>" Kevin MacLeod (incompetech.com)
+Licensed under Creative Commons: By Attribution 4.0 License
+http://creativecommons.org/licenses/by/4.0/
+```
 
 ## 差し替えについて
-外部のフリー音源に差し替える場合は、**商用利用可・再配布可**（動画に乗せて配布する前提）の
-ものを選び、`app/tracks.py` の `credit`/`license` を更新してください。クレジットは現在
-UI のツールチップに表示されます。**表示必須（CC-BY 等）の曲を入れる場合は、
-ツールチップではなく常時可視のテキスト表示に変更**してください。
+外部音源を追加する場合は、**商用利用可・再配布可**のライセンスであることを確認し、
+`app/tracks.py` の `credit` / `license` を正確に記載してください。
