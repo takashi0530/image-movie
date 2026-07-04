@@ -20,8 +20,10 @@ class Track:
 
 
 TRACKS: List[Track] = [
-    Track("calm", "おだやか", "calm.aac", "Procedurally generated original", "CC0"),
+    Track("upbeat", "アップテンポ", "upbeat.aac", "Procedurally generated original", "CC0"),
     Track("happy", "あかるい", "happy.aac", "Procedurally generated original", "CC0"),
+    Track("calm", "おだやか", "calm.aac", "Procedurally generated original", "CC0"),
+    Track("emo", "せつない", "emo.aac", "Procedurally generated original", "CC0"),
     Track("epic", "壮大", "epic.aac", "Procedurally generated original", "CC0"),
 ]
 
