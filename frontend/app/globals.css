@@ -97,11 +97,17 @@ select {
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  background: #0f172a;
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text);
   font-size: 0.95rem;
+}
+
+.field-note {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
 }
 
 .track span {

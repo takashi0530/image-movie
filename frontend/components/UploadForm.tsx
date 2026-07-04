@@ -16,6 +16,7 @@ export function UploadForm({ disabled, onSubmit }: Props) {
   const [previews, setPreviews] = useState<string[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [trackId, setTrackId] = useState<string>(AUTO_TRACK);
+  const [tracksError, setTracksError] = useState<string | null>(null);
 
   useEffect(() => {
     const urls = files.map((f) => URL.createObjectURL(f));
@@ -25,8 +26,16 @@ export function UploadForm({ disabled, onSubmit }: Props) {
 
   useEffect(() => {
     getTracks()
-      .then(setTracks)
-      .catch(() => setTracks([]));
+      .then((list) => {
+        setTracks(list);
+        setTracksError(null);
+      })
+      .catch(() => {
+        setTracks([]);
+        setTracksError(
+          "BGM一覧を取得できませんでした。おまかせ（自動選曲）で生成されます。",
+        );
+      });
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -71,7 +80,9 @@ export function UploadForm({ disabled, onSubmit }: Props) {
             <span>おまかせ（自動選曲）</span>
           </label>
           {tracks.map((t) => (
-            <label key={t.id} className="track">
+            // クレジット/ライセンスはツールチップで表示。CC-BY 等の
+            // 常時表示が必要な曲を入れる場合は可視テキストに変更すること
+            <label key={t.id} className="track" title={`${t.credit} / ${t.license}`}>
               <input
                 type="radio"
                 name="track"
@@ -85,6 +96,7 @@ export function UploadForm({ disabled, onSubmit }: Props) {
             </label>
           ))}
         </div>
+        {tracksError && <p className="field-note">{tracksError}</p>}
       </div>
 
       <div className="field">

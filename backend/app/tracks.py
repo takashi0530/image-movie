@@ -26,7 +26,6 @@ TRACKS: List[Track] = [
 ]
 
 AUTO = "auto"
-DEFAULT_TRACK_ID = "calm"
 
 
 def get_track(track_id: str) -> Optional[Track]:
@@ -36,11 +35,13 @@ def get_track(track_id: str) -> Optional[Track]:
 def resolve(track_id: str, image_count: int) -> Optional[Track]:
     """track_id を Track に解決する。
 
-    - "auto" または未知/空 → 画像枚数で決定的に自動選曲（毎回同じ入力なら同じ曲）。
-    - それ以外 → 該当 Track（無ければ None で呼び出し側が 400 判定）。
+    - "auto" → 画像枚数で決定的に自動選曲（同じ入力なら同じ曲）。
+    - 既知の id → 該当 Track。
+    - 空文字・未知の id → None（呼び出し側が 400 を返す）。
+      空文字を黙って auto に落とすとクライアント側の欠落バグを隠すため、明示的に拒否する。
     """
-    if not track_id or track_id == AUTO:
-        return TRACKS[image_count % len(TRACKS)] if TRACKS else None
+    if track_id == AUTO:
+        return TRACKS[image_count % len(TRACKS)]
     return get_track(track_id)
 
 

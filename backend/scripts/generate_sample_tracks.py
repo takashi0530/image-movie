@@ -57,12 +57,9 @@ def tone(freq: float, dur: float, partials=(1.0, 0.5, 0.25), detune=0.003) -> np
 
 def pad(chord_notes, dur: float) -> np.ndarray:
     """和音パッド。"""
-    n = int(SR * dur)
-    out = np.zeros(n)
+    out = np.zeros(int(SR * dur))
     for name in chord_notes:
-        out[: len(tone(note_freq(NOTE[name]), dur))] += tone(
-            note_freq(NOTE[name]), dur, partials=(1.0, 0.4, 0.2)
-        )
+        out += tone(note_freq(NOTE[name]), dur, partials=(1.0, 0.4, 0.2))
     return out / max(1, len(chord_notes))
 
 
