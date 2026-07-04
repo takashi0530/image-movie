@@ -20,26 +20,26 @@
 ```mermaid
 flowchart TB
     subgraph Client["クライアント"]
-        FE["Next.js (Vercel)\n+ CDN"]
+        FE["Next.js (Vercel)<br/>+ CDN"]
     end
 
     subgraph GCP["GCP プロジェクト"]
-        API["API サービス\nCloud Run (軽量・常時)\n認証/署名URL発行/ジョブ作成"]
-        Q["Cloud Tasks\n(ジョブキュー)"]
-        W["Worker サービス\nCloud Run (CPU多め・長時間)\nffmpeg エンコード"]
-        DB[("Firestore\nジョブ/ユーザー/課金")]
+        API["API サービス<br/>Cloud Run (軽量・常時)<br/>認証/署名URL発行/ジョブ作成"]
+        Q["Cloud Tasks<br/>(ジョブキュー)"]
+        W["Worker サービス<br/>Cloud Run (CPU多め・長時間)<br/>ffmpeg エンコード"]
+        DB[("Firestore<br/>ジョブ/ユーザー/課金")]
         subgraph Storage["Cloud Storage"]
-            IN[("uploads バケット\n入力画像")]
-            OUT[("outputs バケット\n生成MP4")]
+            IN[("uploads バケット<br/>入力画像")]
+            OUT[("outputs バケット<br/>生成MP4")]
         end
         SM["Secret Manager"]
-        MON["Cloud Logging /\nMonitoring / Error Reporting"]
+        MON["Cloud Logging /<br/>Monitoring / Error Reporting"]
     end
 
     subgraph External["外部サービス"]
-        AUTH["Firebase Auth /\nIdentity Platform"]
+        AUTH["Firebase Auth /<br/>Identity Platform"]
         PAY["Stripe"]
-        BGM["BGMライブラリ\n(ライセンス済み音源)"]
+        BGM["BGMライブラリ<br/>(ライセンス済み音源)"]
     end
 
     FE -->|"1. ログイン"| AUTH
@@ -77,7 +77,7 @@ flowchart LR
         UC1["画像をアップロード"]
         UC2["スライドショー動画を生成"]
         UC3["生成状況を確認"]
-        UC4["動画をプレビュー/ダウンロード\n(透かしあり)"]
+        UC4["動画をプレビュー/ダウンロード<br/>(透かしあり)"]
         UC5["HD・透かしなしで書き出し"]
         UC6["BGM/テンプレートを選択"]
         UC7["アカウント管理"]
@@ -300,8 +300,8 @@ cd frontend && npm run dev
 
 ```mermaid
 flowchart LR
-    Me["自分のブラウザ"] -->|Basic認証| CR["Cloud Run 1サービス\n(API + ffmpeg, min-instances=0)"]
-    CR -->|生成して即返す or 短期保存| GCS[("GCS 1バケット\nTTL自動削除")]
+    Me["自分のブラウザ"] -->|Basic認証| CR["Cloud Run 1サービス<br/>(API + ffmpeg, min-instances=0)"]
+    CR -->|生成して即返す or 短期保存| GCS[("GCS 1バケット<br/>TTL自動削除")]
     Me -->|署名URL/直DL| GCS
 ```
 
