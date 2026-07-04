@@ -31,8 +31,16 @@ class Settings(BaseSettings):
     max_file_size_mb: int = 25
     allowed_extensions: List[str] = [".jpg", ".jpeg", ".png", ".webp"]
 
-    # CORS
+    # CORS（本番はフロントを同一オリジンで配信するため実質不要。開発用）
     cors_origins: List[str] = ["http://localhost:3000"]
+
+    # フロントエンドの静的ビルド（next build の out/）を置くディレクトリ。
+    # 存在する場合のみ配信する（開発時は next dev を使うので不要）
+    static_dir: Path = BASE_DIR / "static"
+
+    # Basic 認証（両方設定された場合のみ有効。個人デプロイで全体を保護する）
+    basic_auth_user: str = ""
+    basic_auth_password: str = ""
 
     @property
     def input_framerate(self) -> float:

@@ -49,4 +49,7 @@ build/
 # 注意:
 # - 過去にあった `test*.py` の一括除外は削除しました（tests/ がコミットされず、
 #   かつ test.py 依存で起動不能になる原因でした）。
-# - BGM 素材 backend/assets/music/am.aac は意図的にコミットします。
+# - BGM 素材 backend/assets/music/*.aac は意図的にコミットします。
+
+# フロント静的ビルドの配置先（Dockerビルド時に生成、ローカル検証用）
+/backend/static/
