@@ -12,7 +12,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ja">
+    // suppressHydrationWarning: Dark Reader 等のブラウザ拡張が React 読込前に
+    // <html> へ属性を注入して起きる hydration 警告を抑制する（この要素の属性のみ対象）
+    <html lang="ja" suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );
