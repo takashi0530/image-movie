@@ -43,6 +43,8 @@ export function UploadForm({ disabled, onSubmit }: Props) {
     if (files.length > 0) onSubmit(files, rotation, trackId);
   };
 
+  const selectedTrack = tracks.find((t) => t.id === trackId) ?? null;
+
   return (
     <form className="panel" onSubmit={handleSubmit}>
       <div className="field">
@@ -67,39 +69,42 @@ export function UploadForm({ disabled, onSubmit }: Props) {
 
       <div className="field">
         <label>BGM</label>
-        <div className="tracks">
-          <label className="track">
-            <input
-              type="radio"
-              name="track"
-              value={AUTO_TRACK}
-              checked={trackId === AUTO_TRACK}
-              disabled={disabled}
-              onChange={() => setTrackId(AUTO_TRACK)}
-            />
-            <span>おまかせ（自動選曲）</span>
-          </label>
+        <div className="track-chips">
+          <button
+            type="button"
+            className={`chip${trackId === AUTO_TRACK ? " selected" : ""}`}
+            disabled={disabled}
+            onClick={() => setTrackId(AUTO_TRACK)}
+          >
+            おまかせ
+          </button>
           {tracks.map((t) => (
-            <label key={t.id} className="track">
-              <input
-                type="radio"
-                name="track"
-                value={t.id}
-                checked={trackId === t.id}
-                disabled={disabled}
-                onChange={() => setTrackId(t.id)}
-              />
-              <span className="track-info">
-                {t.title}
-                {/* CC BY 楽曲のためクレジットは常時可視で表示する */}
-                <small className="track-credit">
-                  {t.credit}（{t.license}）
-                </small>
-              </span>
-              <audio controls preload="none" src={t.preview_url} />
-            </label>
+            <button
+              key={t.id}
+              type="button"
+              className={`chip${trackId === t.id ? " selected" : ""}`}
+              disabled={disabled}
+              onClick={() => setTrackId(t.id)}
+            >
+              {t.title}
+            </button>
           ))}
         </div>
+        {selectedTrack && (
+          <div className="track-preview">
+            {/* key で曲切替時にプレーヤーを作り直す */}
+            <audio
+              key={selectedTrack.id}
+              controls
+              preload="none"
+              src={selectedTrack.preview_url}
+            />
+            {/* CC BY 楽曲のためクレジットは常時可視で表示する */}
+            <small className="track-credit">
+              {selectedTrack.credit}（{selectedTrack.license}）
+            </small>
+          </div>
+        )}
         {tracksError && <p className="field-note">{tracksError}</p>}
       </div>
 
