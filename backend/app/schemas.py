@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -24,3 +24,15 @@ class JobStatusResponse(BaseModel):
     state: JobState
     error: Optional[str] = None
     download_url: Optional[str] = None
+
+
+class TrackInfo(BaseModel):
+    id: str
+    title: str
+    credit: str
+    license: str
+    preview_url: str
+
+
+class TracksResponse(BaseModel):
+    tracks: List[TrackInfo]

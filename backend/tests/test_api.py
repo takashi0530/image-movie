@@ -7,8 +7,6 @@ import subprocess
 
 import cv2
 import imageio_ffmpeg
-import numpy as np
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -16,38 +14,23 @@ from app.main import app
 client = TestClient(app)
 
 
-def _png_bytes(color, w=500, h=300):
-    arr = np.full((h, w, 3), color, dtype=np.uint8)
-    ok, buf = cv2.imencode(".png", arr)
-    assert ok
-    return buf.tobytes()
-
-
-def _wait_done(job_id, tries=5):
-    for _ in range(tries):
-        status = client.get(f"/videos/{job_id}").json()
-        if status["state"] in ("done", "error"):
-            return status
-    return status
-
-
 def test_health():
     assert client.get("/health").json() == {"status": "ok"}
 
 
-def test_create_video_end_to_end(tmp_path):
+def test_create_video_end_to_end(tmp_path, png_bytes, wait_done):
     files = [
-        ("images", ("a.png", _png_bytes((20, 20, 200)), "image/png")),
-        ("images", ("b.png", _png_bytes((20, 200, 20)), "image/png")),
-        ("images", ("c.png", _png_bytes((200, 20, 20)), "image/png")),
+        ("images", ("a.png", png_bytes((20, 20, 200)), "image/png")),
+        ("images", ("b.png", png_bytes((20, 200, 20)), "image/png")),
+        ("images", ("c.png", png_bytes((200, 20, 20)), "image/png")),
     ]
     res = client.post("/videos", files=files, data={"rotation": "90"})
     assert res.status_code == 202
     job_id = res.json()["job_id"]
 
-    status = _wait_done(job_id)
+    status = wait_done(client, job_id)
     assert status["state"] == "done", status.get("error")
-    assert status["download_url"]
+    assert status["download_url"] == f"/videos/{job_id}/download"
 
     # 動画をダウンロード
     dl = client.get(f"/videos/{job_id}/download")
@@ -86,8 +69,8 @@ def test_rejects_unsupported_extension():
     assert res.status_code == 400
 
 
-def test_rejects_invalid_rotation():
-    files = [("images", ("a.png", _png_bytes((1, 1, 1)), "image/png"))]
+def test_rejects_invalid_rotation(png_bytes):
+    files = [("images", ("a.png", png_bytes((1, 1, 1)), "image/png"))]
     res = client.post("/videos", files=files, data={"rotation": "45"})
     assert res.status_code == 400
 

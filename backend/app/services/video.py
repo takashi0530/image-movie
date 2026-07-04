@@ -25,7 +25,10 @@ def build_video(
     output_fps: int,
 ) -> None:
     ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
-    has_audio = audio_path is not None and Path(audio_path).exists()
+    has_audio = audio_path is not None
+    if has_audio and not Path(audio_path).is_file():
+        # 指定された音源が無いのに黙って無音動画を作らない（None 指定のみ無音を許可）
+        raise VideoEncodeError(f"音源ファイルがありません: {audio_path}")
 
     cmd = [
         ffmpeg,

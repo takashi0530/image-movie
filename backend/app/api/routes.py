@@ -6,6 +6,7 @@
 """
 from __future__ import annotations
 
+import shutil
 import uuid
 from pathlib import Path
 from typing import List
@@ -16,14 +17,20 @@ from fastapi import (
     File,
     Form,
     HTTPException,
-    Request,
     UploadFile,
 )
 from fastapi.responses import FileResponse
 
+from .. import tracks as track_registry
 from ..config import get_settings
 from ..jobs import store
-from ..schemas import JobCreatedResponse, JobState, JobStatusResponse
+from ..schemas import (
+    JobCreatedResponse,
+    JobState,
+    JobStatusResponse,
+    TrackInfo,
+    TracksResponse,
+)
 from ..services import images as image_service
 from ..services import video as video_service
 
@@ -32,7 +39,7 @@ router = APIRouter()
 VALID_ROTATIONS = (0, 90, 180, 270)
 
 
-def _process(job_id: str, src_paths: List[Path], rotation: int) -> None:
+def _process(job_id: str, src_paths: List[Path], rotation: int, audio_path: Path) -> None:
     """バックグラウンドで実行される動画生成処理。"""
     settings = get_settings()
     job = store.get(job_id)
@@ -51,7 +58,7 @@ def _process(job_id: str, src_paths: List[Path], rotation: int) -> None:
         output_path = job.work_dir / "movie.mp4"
         video_service.build_video(
             frames_dir,
-            settings.audio_path,
+            audio_path,
             output_path,
             input_framerate=settings.input_framerate,
             output_fps=settings.output_fps,
@@ -63,22 +70,67 @@ def _process(job_id: str, src_paths: List[Path], rotation: int) -> None:
         job.error = str(exc)
 
 
+@router.get("/tracks", response_model=TracksResponse)
+async def list_tracks() -> TracksResponse:
+    """選択可能な BGM トラック一覧（プレビューURL付き）。
+
+    URL は相対パスで返す（絶対URLを url_for で組むとリバースプロキシ配下で
+    内部ホスト/http スキームが露出するため）。クライアント側で API ベースURLを前置する。
+    """
+    items = [
+        TrackInfo(
+            id=t.id,
+            title=t.title,
+            credit=t.credit,
+            license=t.license,
+            preview_url=f"/tracks/{t.id}/preview",
+        )
+        for t in track_registry.TRACKS
+    ]
+    return TracksResponse(tracks=items)
+
+
+@router.get("/tracks/{track_id}/preview")
+async def preview_track(track_id: str) -> FileResponse:
+    settings = get_settings()
+    track = track_registry.get_track(track_id)
+    if track is None:
+        raise HTTPException(status_code=404, detail="トラックが見つかりません")
+    path = track_registry.track_path(settings.music_dir, track)
+    if not path.is_file():
+        # レジストリとディスクの乖離（デプロイ漏れ・改名忘れ）は 500 ではなく 404 で返す
+        raise HTTPException(status_code=404, detail="音源ファイルがありません")
+    return FileResponse(
+        path,
+        media_type="audio/aac",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
 @router.post("/videos", status_code=202, response_model=JobCreatedResponse)
 async def create_video(
     background_tasks: BackgroundTasks,
     images: List[UploadFile] = File(...),
     rotation: int = Form(0),
+    track_id: str = Form(track_registry.AUTO),
 ) -> JobCreatedResponse:
     settings = get_settings()
     store.cleanup_expired(settings.job_ttl_seconds)
 
+    # ---- 検証はアップロード本体を読み込む前に済ませる（不正リクエストを即拒否）----
     if rotation not in VALID_ROTATIONS:
         raise HTTPException(status_code=400, detail="rotation は 0/90/180/270 のいずれか")
 
-    filenames = [f.filename or "" for f in images]
-    contents = [await f.read() for f in images]
-    sizes = [len(c) for c in contents]
+    track = track_registry.resolve(track_id, len(images))
+    if track is None:
+        raise HTTPException(status_code=400, detail=f"不明な track_id: {track_id}")
+    audio_path = track_registry.track_path(settings.music_dir, track)
+    if not audio_path.is_file():
+        # レジストリとディスクの乖離。受理して無音動画を作るのではなく、ここで失敗させる
+        raise HTTPException(status_code=500, detail=f"音源ファイルがありません: {track.id}")
 
+    filenames = [f.filename or "" for f in images]
+    sizes = [f.size or 0 for f in images]
     try:
         image_service.validate_uploads(
             filenames,
@@ -95,28 +147,29 @@ async def create_video(
     uploads_dir = work_dir / "uploads"
     uploads_dir.mkdir(parents=True, exist_ok=True)
 
-    # 元の filename は使わず連番で保存（パストラバーサル回避 + 順序の安定化）
+    # 元の filename は使わず連番で保存（パストラバーサル回避 + 順序の安定化）。
+    # 全ファイルをメモリに載せず、スプールからストリームコピーする。
     src_paths: List[Path] = []
-    for idx, (name, data) in enumerate(zip(filenames, contents), start=1):
+    for idx, (name, upload) in enumerate(zip(filenames, images), start=1):
         ext = Path(name).suffix.lower()
         safe_path = uploads_dir / f"{idx:04d}{ext}"
-        safe_path.write_bytes(data)
+        with safe_path.open("wb") as out:
+            shutil.copyfileobj(upload.file, out)
         src_paths.append(safe_path)
 
     store.create(job_id, work_dir)
-    background_tasks.add_task(_process, job_id, src_paths, rotation)
+    background_tasks.add_task(_process, job_id, src_paths, rotation, audio_path)
     return JobCreatedResponse(job_id=job_id, state=JobState.queued)
 
 
 @router.get("/videos/{job_id}", response_model=JobStatusResponse)
-async def get_status(job_id: str, request: Request) -> JobStatusResponse:
+async def get_status(job_id: str) -> JobStatusResponse:
     job = store.get(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="ジョブが見つかりません")
 
-    download_url = None
-    if job.state == JobState.done:
-        download_url = str(request.url_for("download_video", job_id=job_id))
+    # 相対パスで返す（preview_url と同じ理由でプロキシ安全）。クライアントがベースURLを前置する
+    download_url = f"/videos/{job_id}/download" if job.state == JobState.done else None
 
     return JobStatusResponse(
         job_id=job.id,
@@ -126,7 +179,7 @@ async def get_status(job_id: str, request: Request) -> JobStatusResponse:
     )
 
 
-@router.get("/videos/{job_id}/download", name="download_video")
+@router.get("/videos/{job_id}/download")
 async def download_video(job_id: str) -> FileResponse:
     job = store.get(job_id)
     if job is None or job.state != JobState.done or job.output_path is None:

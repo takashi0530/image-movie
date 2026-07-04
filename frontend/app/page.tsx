@@ -29,16 +29,19 @@ export default function Home() {
     setError(null);
   };
 
-  const handleSubmit = useCallback(async (files: File[], rotation: number) => {
-    reset();
-    try {
-      const { job_id } = await createVideo(files, rotation);
-      setJobId(job_id);
-      setState("queued");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "不明なエラー");
-    }
-  }, []);
+  const handleSubmit = useCallback(
+    async (files: File[], rotation: number, trackId: string) => {
+      reset();
+      try {
+        const { job_id } = await createVideo(files, rotation, trackId);
+        setJobId(job_id);
+        setState("queued");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "不明なエラー");
+      }
+    },
+    [],
+  );
 
   // ジョブ状態のポーリング
   useEffect(() => {

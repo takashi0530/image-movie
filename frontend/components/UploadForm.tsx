@@ -1,18 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AUTO_TRACK, getTracks, type Track } from "@/lib/api";
 
 const ROTATIONS = [0, 90, 180, 270] as const;
 
 interface Props {
   disabled: boolean;
-  onSubmit: (files: File[], rotation: number) => void;
+  onSubmit: (files: File[], rotation: number, trackId: string) => void;
 }
 
 export function UploadForm({ disabled, onSubmit }: Props) {
   const [files, setFiles] = useState<File[]>([]);
   const [rotation, setRotation] = useState<number>(0);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [trackId, setTrackId] = useState<string>(AUTO_TRACK);
+  const [tracksError, setTracksError] = useState<string | null>(null);
 
   useEffect(() => {
     const urls = files.map((f) => URL.createObjectURL(f));
@@ -20,9 +24,23 @@ export function UploadForm({ disabled, onSubmit }: Props) {
     return () => urls.forEach((u) => URL.revokeObjectURL(u));
   }, [files]);
 
+  useEffect(() => {
+    getTracks()
+      .then((list) => {
+        setTracks(list);
+        setTracksError(null);
+      })
+      .catch(() => {
+        setTracks([]);
+        setTracksError(
+          "BGM一覧を取得できませんでした。おまかせ（自動選曲）で生成されます。",
+        );
+      });
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (files.length > 0) onSubmit(files, rotation);
+    if (files.length > 0) onSubmit(files, rotation, trackId);
   };
 
   return (
@@ -45,6 +63,40 @@ export function UploadForm({ disabled, onSubmit }: Props) {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="field">
+        <label>BGM</label>
+        <div className="tracks">
+          <label className="track">
+            <input
+              type="radio"
+              name="track"
+              value={AUTO_TRACK}
+              checked={trackId === AUTO_TRACK}
+              disabled={disabled}
+              onChange={() => setTrackId(AUTO_TRACK)}
+            />
+            <span>おまかせ（自動選曲）</span>
+          </label>
+          {tracks.map((t) => (
+            // クレジット/ライセンスはツールチップで表示。CC-BY 等の
+            // 常時表示が必要な曲を入れる場合は可視テキストに変更すること
+            <label key={t.id} className="track" title={`${t.credit} / ${t.license}`}>
+              <input
+                type="radio"
+                name="track"
+                value={t.id}
+                checked={trackId === t.id}
+                disabled={disabled}
+                onChange={() => setTrackId(t.id)}
+              />
+              <span>{t.title}</span>
+              <audio controls preload="none" src={t.preview_url} />
+            </label>
+          ))}
+        </div>
+        {tracksError && <p className="field-note">{tracksError}</p>}
       </div>
 
       <div className="field">
