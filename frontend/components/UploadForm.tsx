@@ -5,6 +5,9 @@ import { AUTO_TRACK, getTracks, type Track } from "@/lib/api";
 
 const ROTATIONS = [0, 90, 180, 270] as const;
 
+// Cloud Run の 1リクエスト約32MiB 制限より手前で分かりやすく弾く
+const MAX_TOTAL_UPLOAD_MB = 30;
+
 interface Props {
   disabled: boolean;
   onSubmit: (files: File[], rotation: number, trackId: string) => void;
@@ -38,9 +41,12 @@ export function UploadForm({ disabled, onSubmit }: Props) {
       });
   }, []);
 
+  const totalMb = files.reduce((sum, f) => sum + f.size, 0) / (1024 * 1024);
+  const tooLarge = totalMb > MAX_TOTAL_UPLOAD_MB;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (files.length > 0) onSubmit(files, rotation, trackId);
+    if (files.length > 0 && !tooLarge) onSubmit(files, rotation, trackId);
   };
 
   const selectedTrack = tracks.find((t) => t.id === trackId) ?? null;
@@ -64,6 +70,12 @@ export function UploadForm({ disabled, onSubmit }: Props) {
               <img key={i} src={src} alt={`preview ${i + 1}`} />
             ))}
           </div>
+        )}
+        {tooLarge && (
+          <p className="error">
+            ⚠️ 合計 {totalMb.toFixed(1)}MB は上限 {MAX_TOTAL_UPLOAD_MB}MB
+            を超えています。枚数を減らすか、数回に分けてください。
+          </p>
         )}
       </div>
 
@@ -124,7 +136,7 @@ export function UploadForm({ disabled, onSubmit }: Props) {
         </select>
       </div>
 
-      <button type="submit" disabled={disabled || files.length === 0}>
+      <button type="submit" disabled={disabled || files.length === 0 || tooLarge}>
         {files.length > 0 ? `${files.length} 枚で動画を作成` : "画像を選択してください"}
       </button>
     </form>

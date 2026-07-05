@@ -1,0 +1,18 @@
+# gcloud run deploy --source . のアップロード対象から除外するもの。
+# これが無いと（.gitignore からの自動生成に頼ると）ネストした .gitignore が
+# 効かず、backend/tmp/ 配下の私的な写真・生成動画が Cloud Build の
+# ステージングバケットへアップロードされてしまう。
+.git
+.gcloudignore
+**/node_modules
+**/.next
+**/out
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+backend/tmp
+backend/static
+frontend/test-results
+frontend/playwright-report
+docs

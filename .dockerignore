@@ -10,5 +10,8 @@ backend/tmp
 frontend/test-results
 frontend/playwright-report
 docs
+# `*.md` はルート直下のみ除外（`*` は `/` を跨がない）。下の再包含は現状 dead code だが、
+# 将来 `**/*.md` に強化された場合に CREDITS.md（BGMの帰属表記・ライセンス上必須）が
+# イメージから消えるのを防ぐ保険なので削除しないこと
 *.md
 !backend/assets/music/CREDITS.md

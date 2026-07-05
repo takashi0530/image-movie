@@ -1,11 +1,20 @@
 """画像の検証と正規化（リサイズ + 中央寄せ + 黒背景パディング + 任意回転）。"""
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Iterable, Sequence
 
-import cv2
-import numpy as np
+# デコード爆弾の一次ガード: OpenCV のデコード上限（デフォルト2^30px）を下げる。
+# cv2 の import より前に設定する必要がある
+os.environ.setdefault("OPENCV_IO_MAX_IMAGE_PIXELS", "50000000")
+
+import cv2  # noqa: E402
+import numpy as np  # noqa: E402
+
+# 二次ガード: デコード後のピクセル数上限（50MP ≒ 最新スマホの48MPを許容）。
+# 小さな PNG が数GBに展開される攻撃/事故から 1〜2Gi の Cloud Run インスタンスを守る
+MAX_IMAGE_PIXELS = 50_000_000
 
 
 class ValidationError(Exception):
@@ -83,8 +92,14 @@ def normalize_images(
     frames_dir.mkdir(parents=True, exist_ok=True)
     count = 0
     for path in src_paths:
-        img = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
+        try:
+            img = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
+        except cv2.error:  # OPENCV_IO_MAX_IMAGE_PIXELS 超過等は無効画像として扱う
+            img = None
         if img is None:
+            continue
+        if img.shape[0] * img.shape[1] > MAX_IMAGE_PIXELS:
+            del img
             continue
         img = _to_bgr(img)
         img = _rotate(img, rotation)

@@ -69,3 +69,14 @@ def test_normalize_images_empty_raises(tmp_path):
     frames_dir = tmp_path / "frames"
     with pytest.raises(image_service.ValidationError):
         image_service.normalize_images([], frames_dir, width=10, height=10)
+
+
+def test_normalize_images_rejects_oversized_pixels(tmp_path, monkeypatch):
+    """ピクセル数上限を超える画像（展開爆弾対策）は無効として扱う。"""
+    src = tmp_path / "src.png"
+    _write_image(src, 20, 20)  # 400px
+    monkeypatch.setattr(image_service, "MAX_IMAGE_PIXELS", 100)  # 上限を下回らせる
+    with pytest.raises(image_service.ValidationError):  # 有効画像0枚扱い
+        image_service.normalize_images(
+            [src], tmp_path / "frames", width=100, height=100
+        )

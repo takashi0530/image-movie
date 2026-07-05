@@ -34,12 +34,13 @@ async def lifespan(app: FastAPI):
 
 def _basic_auth_middleware(user: str, password: str):
     """全リクエストを Basic 認証で保護するミドルウェアを返す。"""
-    expected = base64.b64encode(f"{user}:{password}".encode()).decode()
+    expected = base64.b64encode(f"{user}:{password}".encode())
 
     async def middleware(request: Request, call_next):
         auth = request.headers.get("Authorization", "")
+        # bytes 同士で比較する（非ASCIIヘッダで compare_digest が TypeError → 500 になるのを防ぐ）
         ok = auth.startswith("Basic ") and secrets.compare_digest(
-            auth[len("Basic "):], expected
+            auth[len("Basic "):].encode("utf-8", "replace"), expected
         )
         if not ok:
             return Response(
@@ -57,9 +58,20 @@ def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title="image-movie API", version="1.0.0", lifespan=lifespan)
 
+    # fail-closed: 片方だけ設定されている（typo・Secret 供給失敗など）状態で
+    # 認証なし公開になるのを防ぐため、不完全な設定では起動させない
+    if bool(settings.basic_auth_user) != bool(settings.basic_auth_password):
+        raise RuntimeError(
+            "Basic認証の設定が不完全です: IMAGE_MOVIE_BASIC_AUTH_USER と "
+            "IMAGE_MOVIE_BASIC_AUTH_PASSWORD は両方設定してください"
+        )
     if settings.basic_auth_user and settings.basic_auth_password:
         app.middleware("http")(
             _basic_auth_middleware(settings.basic_auth_user, settings.basic_auth_password)
+        )
+    else:
+        logging.getLogger("image_movie").warning(
+            "Basic認証は無効です（ローカル開発モード）。公開環境では必ず設定してください"
         )
 
     app.add_middleware(

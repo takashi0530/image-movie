@@ -53,6 +53,34 @@ def test_basic_auth_rejects_wrong_password(monkeypatch):
         _cleanup()
 
 
+def test_malformed_non_ascii_header_is_401_not_500(monkeypatch):
+    """非ASCIIの Authorization ヘッダで 500 にならず 401 を返す。"""
+    try:
+        client = TestClient(_make_app(monkeypatch, "me", "secret"))
+        res = client.get(
+            "/health", headers={b"Authorization": b"Basic \xff\xff\xff\xff"}
+        )
+        assert res.status_code == 401
+    finally:
+        _cleanup()
+
+
+def test_partial_auth_config_fails_closed(monkeypatch):
+    """片方の環境変数だけ設定された場合は起動を拒否する（認証なし公開の防止）。"""
+    import pytest
+
+    monkeypatch.setenv("IMAGE_MOVIE_BASIC_AUTH_USER", "me")
+    monkeypatch.delenv("IMAGE_MOVIE_BASIC_AUTH_PASSWORD", raising=False)
+    get_settings.cache_clear()
+    try:
+        from app.main import create_app
+
+        with pytest.raises(RuntimeError):
+            create_app()
+    finally:
+        _cleanup()
+
+
 def test_no_auth_when_not_configured():
     # 環境変数未設定（デフォルト）の場合は認証なしで通る（ローカル開発）
     get_settings.cache_clear()
