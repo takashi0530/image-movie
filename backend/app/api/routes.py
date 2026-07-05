@@ -42,6 +42,24 @@ logger = logging.getLogger("image_movie")
 VALID_ROTATIONS = (0, 90, 180, 270)
 
 
+def save_upload_capped(src, dest: Path, max_bytes: int) -> None:
+    """アップロードをストリーム保存しつつサイズ上限を書き込み時にも強制する。
+
+    multipart パートに content-length が無いクライアントでは UploadFile.size が
+    None になり事前検証（validate_uploads）をすり抜けるため、実バイト数で防ぐ。
+    Cloud Run はファイルシステムが RAM 共有のため、無制限書き込みは OOM に直結する。
+    """
+    written = 0
+    with dest.open("wb") as out:
+        while chunk := src.read(1 << 20):
+            written += len(chunk)
+            if written > max_bytes:
+                raise image_service.ValidationError(
+                    f"ファイルサイズが大きすぎます（上限 {max_bytes // (1024 * 1024)}MB）"
+                )
+            out.write(chunk)
+
+
 def _process(job_id: str, src_paths: List[Path], rotation: int, audio_path: Path) -> None:
     """バックグラウンドで実行される動画生成処理。"""
     settings = get_settings()
@@ -70,6 +88,9 @@ def _process(job_id: str, src_paths: List[Path], rotation: int, audio_path: Path
             preset=settings.encode_preset,
         )
         encoded = time.perf_counter()
+        # 中間ファイルを即時解放（Cloud Run では書込FS=RAMのため、残すとメモリを圧迫する）
+        shutil.rmtree(frames_dir, ignore_errors=True)
+        shutil.rmtree(job.work_dir / "uploads", ignore_errors=True)
         job.output_path = output_path
         job.state = JobState.done
         logger.info(
@@ -164,14 +185,17 @@ async def create_video(
     uploads_dir.mkdir(parents=True, exist_ok=True)
 
     # 元の filename は使わず連番で保存（パストラバーサル回避 + 順序の安定化）。
-    # 全ファイルをメモリに載せず、スプールからストリームコピーする。
+    # 全ファイルをメモリに載せず、スプールからストリームコピーする（上限も再強制）。
     src_paths: List[Path] = []
-    for idx, (name, upload) in enumerate(zip(filenames, images), start=1):
-        ext = Path(name).suffix.lower()
-        safe_path = uploads_dir / f"{idx:04d}{ext}"
-        with safe_path.open("wb") as out:
-            shutil.copyfileobj(upload.file, out)
-        src_paths.append(safe_path)
+    try:
+        for idx, (name, upload) in enumerate(zip(filenames, images), start=1):
+            ext = Path(name).suffix.lower()
+            safe_path = uploads_dir / f"{idx:04d}{ext}"
+            save_upload_capped(upload.file, safe_path, settings.max_file_size_bytes)
+            src_paths.append(safe_path)
+    except image_service.ValidationError as exc:
+        shutil.rmtree(work_dir, ignore_errors=True)
+        raise HTTPException(status_code=400, detail=str(exc))
 
     store.create(job_id, work_dir)
     background_tasks.add_task(_process, job_id, src_paths, rotation, audio_path)
@@ -180,6 +204,8 @@ async def create_video(
 
 @router.get("/videos/{job_id}", response_model=JobStatusResponse)
 async def get_status(job_id: str) -> JobStatusResponse:
+    # POST 契機だけだと長時間 POST が来ない場合に残置が続くため、参照時にも掃除する
+    store.cleanup_expired(get_settings().job_ttl_seconds)
     job = store.get(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="ジョブが見つかりません")
